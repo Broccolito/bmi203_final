@@ -204,7 +204,7 @@ class NeuralNetwork:
             dZ_curr = self._relu_backprop(dA_curr, Z_curr)
         else:
             # Raise an error if the activation function is not supported
-            raise Error("Activation function not defined")
+            raise Error("Activation function needs to be defined....")
 
         # Calculate the partial derivative of loss with respect to the current layer's weights
         dW_curr = np.dot(dZ_curr.T, A_prev)
@@ -245,7 +245,7 @@ class NeuralNetwork:
             dA_curr = self._mean_squared_error_backprop(y, y_hat)
         else:
             # Raise an error if the loss function is not supported
-            raise Error("Loss function not defined")
+            raise Error("Loss function needs to be defined...")
 
         # Iterate backwards through the layers of the network to compute gradients
         for i in reversed(range(1, len(self.arch) + 1)):
@@ -276,7 +276,7 @@ class NeuralNetwork:
         elif self._loss_func == 'binary_cross_entropy':
             return self._binary_cross_entropy(y, y_hat)
         else:
-            raise ValueError("Loss function not defined")
+            raise ValueError("Loss function needs to be defined...")
 
     def _update_params(self, grad_dict: Dict[str, ArrayLike]):
         """
