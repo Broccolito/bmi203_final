@@ -1,4 +1,3 @@
-# Imports
 import numpy as np
 from typing import List, Dict, Tuple, Union
 from numpy.typing import ArrayLike
@@ -31,12 +30,14 @@ class NeuralNetwork:
 
     def __init__(
         self,
-        nn_arch: List[Dict[str, Union(int, str)]],
+        nn_arch: List[Dict[str, Union[int, str]]],
         lr: float,
         seed: int,
         batch_size: int,
         epochs: int,
-        loss_function: str
+        loss_function: str, 
+        leniency: int, 
+        progress: int
     ):
 
         # Save architecture
@@ -48,6 +49,8 @@ class NeuralNetwork:
         self._epochs = epochs
         self._loss_func = loss_function
         self._batch_size = batch_size
+        self._leniency = leniency
+        self._progress = progress
 
         # Initialize the parameter dictionary for use in training
         self._param_dict = self._init_params()
@@ -113,7 +116,7 @@ class NeuralNetwork:
         elif activation == "relu":
             A_curr = self._relu(Z_curr)
         else:
-            raise Error("Activation function needs to be defined...")
+            raise Error("Activation function not defined")
         return A_curr, Z_curr
 
     def forward(self, X: ArrayLike) -> Tuple[ArrayLike, Dict[str, ArrayLike]]:
@@ -158,6 +161,7 @@ class NeuralNetwork:
 
         # The final activations represent the output of the neural network, return these and the cache
         return A_curr, cache
+            
 
     def _single_backprop(
         self,
@@ -200,7 +204,7 @@ class NeuralNetwork:
             dZ_curr = self._relu_backprop(dA_curr, Z_curr)
         else:
             # Raise an error if the activation function is not supported
-            raise Error("Activation function needs to be defined...\n")
+            raise Error("Activation function not defined")
 
         # Calculate the partial derivative of loss with respect to the current layer's weights
         dW_curr = np.dot(dZ_curr.T, A_prev)
@@ -211,25 +215,27 @@ class NeuralNetwork:
         dA_prev = np.dot(dZ_curr, W_curr)
         # Return the gradients with respect to the activations of the previous layer, the current layer's weights, and biases
         return dA_prev, dW_curr, db_curr
+        
 
     def backprop(self, y: ArrayLike, y_hat: ArrayLike, cache: Dict[str, ArrayLike]):
         """
-        This method is responsible for the backprop of the whole fully connected neural network.
+        This method is responsible for the backpropagation of the whole fully connected neural network.
 
         Args:
-            y (array-like):
+            y (ArrayLike):
                 Ground truth labels.
             y_hat: ArrayLike
-                Predicted output values.
+                Predicted output values from the forward pass.
             cache: Dict[str, ArrayLike]
-                Dictionary containing the information about the
-                most recent forward pass, specifically A and Z matrices.
+                Dictionary containing the information about the most recent forward pass,
+                specifically A (activation) and Z (linear combination) matrices for each layer.
 
         Returns:
             grad_dict: Dict[str, ArrayLike]
-                Dictionary containing the gradient information from this pass of backprop.
+                Dictionary containing the gradient information from this backpropagation pass,
+                including gradients with respect to weights (dW) and biases (db) for each layer.
         """
-                # Initialize a dictionary to store the gradients
+        # Initialize a dictionary to store the gradients
         grad_dict = {}
 
         # Compute the gradient of the loss function with respect to the activation of the last layer
@@ -263,14 +269,14 @@ class NeuralNetwork:
 
         # Return the dictionary containing all computed gradients
         return grad_dict
-
+    
     def _compute_loss(self, y: ArrayLike, y_hat: ArrayLike) -> float:
         if self._loss_func == 'mean_squared_error':
             return self._mean_squared_error(y, y_hat)
         elif self._loss_func == 'binary_cross_entropy':
             return self._binary_cross_entropy(y, y_hat)
         else:
-            raise ValueError("Loss function needs to be defined...\n")
+            raise ValueError("Loss function not defined")
 
     def _update_params(self, grad_dict: Dict[str, ArrayLike]):
         """
@@ -317,11 +323,11 @@ class NeuralNetwork:
         per_epoch_loss_val = []
         
         best_val_loss = np.inf
-        epochs_without_improve = 0
-        patience = self._patience
+        epochs_no_improve = 0
+        leniency = self._leniency
         progress = self._progress
 
-        # Calculate the number of batches in a given epoch
+        # Compute the number of batches in a given epoch
         num_batches = np.ceil(len(y_train) / self._batch_size)
 
         # Loop over epochs
@@ -367,12 +373,12 @@ class NeuralNetwork:
             
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
-                epochs_without_improve = 0
+                epochs_no_improve = 0
                 best_params = copy.deepcopy(self._param_dict)
             else:
-                epochs_without_improve += 1
+                epochs_no_improve += 1
                 
-            if epochs_without_improve >= patience:
+            if epochs_no_improve >= leniency:
                 print(f"Early stopping triggered after {e + 1} epochs.")
                 self._param_dict = best_params
                 break
